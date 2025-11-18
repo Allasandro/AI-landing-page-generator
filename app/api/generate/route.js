@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(request) {
@@ -22,7 +22,7 @@ export async function POST(request) {
       targetAudience,
       tone,
       primaryCta,
-      secondaryCta
+      secondaryCta,
     } = body || {};
 
     if (!productName || !oneLiner || !description || !targetAudience) {
@@ -70,82 +70,24 @@ Constraints:
 - Do NOT include markdown. Do NOT include comments. Do NOT wrap the JSON in backticks.
 `;
 
+    // Call the Responses API without response_format and parse JSON manually
     const response = await client.responses.create({
       model: "gpt-4.1-mini",
       input: prompt,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "landing_page",
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              heroTitle: { type: "string" },
-              heroSubtitle: { type: "string" },
-              features: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    body: { type: "string" }
-                  },
-                  required: ["title", "body"],
-                  additionalProperties: false
-                },
-                minItems: 3,
-                maxItems: 6
-              },
-              pricing: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    name: { type: "string" },
-                    price: { type: "string" },
-                    cadence: { type: "string" },
-                    bullet: { type: "string" }
-                  },
-                  required: ["name", "price", "cadence", "bullet"],
-                  additionalProperties: false
-                },
-                minItems: 2,
-                maxItems: 3
-              },
-              faqs: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    q: { type: "string" },
-                    a: { type: "string" }
-                  },
-                  required: ["q", "a"],
-                  additionalProperties: false
-                },
-                minItems: 2,
-                maxItems: 6
-              },
-              rawHtml: { type: "string" }
-            },
-            required: ["heroTitle", "heroSubtitle", "features", "pricing", "faqs", "rawHtml"]
-          }
-        }
-      }
     });
 
-    const message = response.output[0]?.content[0]?.text || response.output[0]?.content[0]?.json;
+    const content = response.output[0]?.content[0];
 
-    if (!message) {
-      throw new Error("No content returned from model");
+    if (!content || typeof content.text !== "string") {
+      throw new Error("No text content returned from model");
     }
 
     let parsed;
-    if (typeof message === "string") {
-      parsed = JSON.parse(message);
-    } else {
-      parsed = message;
+    try {
+      parsed = JSON.parse(content.text);
+    } catch (e) {
+      console.error("Failed to parse JSON from model:", content.text);
+      throw new Error("Model did not return valid JSON");
     }
 
     return NextResponse.json(parsed);
