@@ -21,6 +21,9 @@ export default function HomePage() {
   const [stylePreset, setStylePreset] = useState("bold");
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [theme, setTheme] = useState("dark"); // dark | light
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [heroImageLoading, setHeroImageLoading] = useState(false);
+  const [heroImageError, setHeroImageError] = useState("");
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -60,6 +63,8 @@ export default function HomePage() {
     setResult(null);
     setError("");
     setCopiedHtml(false);
+    setHeroImageUrl("");
+    setHeroImageError("");
   };
 
   const handleCopyHtml = async () => {
@@ -74,6 +79,37 @@ export default function HomePage() {
     }
   };
 
+  const handleGenerateHeroImage = async () => {
+    setHeroImageError("");
+    setHeroImageLoading(true);
+
+    try {
+      const res = await fetch("/api/hero-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productName: form.productName,
+          description: form.description,
+          stylePreset,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Failed to generate hero image");
+      }
+
+      const data = await res.json();
+      setHeroImageUrl(data.url);
+    } catch (err) {
+      console.error(err);
+      setHeroImageError(err.message || "Failed to generate hero image");
+    } finally {
+      setHeroImageLoading(false);
+    }
+  };
+
+  
   const heroTitle =
     result?.heroTitle || `${form.productName || "Your next"} launch-ready, in one line.`;
 
@@ -408,6 +444,38 @@ export default function HomePage() {
                   <div className="preview-browser-meta">Preview · LaunchPage AI</div>
                 </div>
                 <div className="preview-body">
+                  <div className="preview-hero-image-section">
+                    <div className="preview-hero-image-header">
+                      <span className="preview-hero-image-label">Hero image</span>
+                      <button
+                        type="button"
+                        className="button-secondary small"
+                        onClick={handleGenerateHeroImage}
+                        disabled={heroImageLoading}
+                      >
+                        {heroImageLoading ? "Generating..." : heroImageUrl ? "Regenerate" : "Generate"}
+                      </button>
+                    </div>
+                    <div className="preview-hero-image-wrapper">
+                      {heroImageLoading ? (
+                        <div className="preview-hero-image placeholder" />
+                      ) : heroImageUrl ? (
+                        <img
+                          src={heroImageUrl}
+                          alt="AI generated hero"
+                          className="preview-hero-image"
+                        />
+                      ) : (
+                        <div className="preview-hero-image placeholder subtle">
+                          <span>Hero image will appear here</span>
+                        </div>
+                      )}
+                    </div>
+                    {heroImageError && (
+                      <div className="preview-error-text">{heroImageError}</div>
+                    )}
+                  </div>
+
                   <div className="preview-hero-eyebrow">
                     {form.targetAudience
                       ? `${form.targetAudience} · AI-powered`
@@ -415,6 +483,7 @@ export default function HomePage() {
                   </div>
                   <h1 className="preview-hero-title">{heroTitle}</h1>
                   <p className="preview-hero-subtitle">{heroSubtitle}</p>
+
                   <div className="preview-cta-row">
                     <button className="button-primary" type="button">
                       {form.primaryCta || "Get started free"}
