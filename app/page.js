@@ -18,6 +18,8 @@ export default function HomePage() {
   const [previewMode, setPreviewMode] = useState("pretty");
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [stylePreset, setStylePreset] = useState("bold");
+  const [copiedHtml, setCopiedHtml] = useState(false);
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -28,6 +30,7 @@ export default function HomePage() {
     setError("");
     setLoading(true);
     setResult(null);
+    setCopiedHtml(false);
 
     try {
       const res = await fetch("/api/generate", {
@@ -55,12 +58,28 @@ export default function HomePage() {
     setForm(defaultState);
     setResult(null);
     setError("");
+    setCopiedHtml(false);
   };
 
-  const heroTitle = result?.heroTitle || "Your AI-native startup, in one line.";
+  const handleCopyHtml = async () => {
+    if (!result?.rawHtml) return;
+    try {
+      await navigator.clipboard.writeText(result.rawHtml);
+      setCopiedHtml(true);
+      setTimeout(() => setCopiedHtml(false), 2000);
+    } catch (err) {
+      console.error(err);
+      setError("Could not copy HTML. Please copy it manually.");
+    }
+  };
+
+  const heroTitle =
+    result?.heroTitle || `${form.productName || "Your next"} launch-ready, in one line.`;
+
   const heroSubtitle =
     result?.heroSubtitle ||
-    "Drop your idea in. Get a conversion-optimized landing page out. Built for indie hackers, by an indie hacker.";
+    "Drop your idea in. Get a conversion-optimized landing page out. Built for indie founders who ship fast.";
+
   const features = result?.features || [
     {
       title: "Conversion-first copy",
@@ -112,23 +131,32 @@ export default function HomePage() {
     <main>
       <div className="app-shell">
         <header className="app-header">
-          <div>
+          <div className="app-header-left">
             <div className="badge">
               <span className="badge-dot" />
               SHIPPING IN PUBLIC · V0.1
             </div>
-            <div style={{ marginTop: 8 }}>
+            <div className="app-branding">
               <div className="app-title">
                 <span className="logo">Λ</span>
-                <span>AI Landing Page Studio</span>
+                <span>LaunchPage AI</span>
               </div>
-              <div className="app-subtitle">
-                Turn a one-line startup idea into a full landing page in seconds.
-              </div>
+              <p className="app-tagline">
+                Generate high-converting landing pages from a single sentence. Built for indie
+                hackers, creators and tiny SaaS teams.
+              </p>
             </div>
           </div>
           <div className="app-header-right">
-            <div className="app-header-pill">No-code · Built live · Indie SaaS</div>
+            <div className="app-header-pill">No code · AI powered · Indie SaaS</div>
+            <a
+              href="https://x.com"
+              target="_blank"
+              rel="noreferrer"
+              className="app-header-link"
+            >
+              Built in public →
+            </a>
           </div>
         </header>
 
@@ -246,6 +274,33 @@ export default function HomePage() {
                 </div>
               </div>
 
+              <div className="form-row">
+                <label className="form-label">
+                  <strong>Template style</strong> · <span>How should this page feel?</span>
+                </label>
+                <div className="template-style-row">
+                  {[
+                    { id: "minimal", label: "Minimal", desc: "Clean & product-first" },
+                    { id: "bold", label: "Bold SaaS", desc: "High contrast & punchy" },
+                    { id: "playful", label: "Playful", desc: "Soft, friendly, creator-ish" },
+                    { id: "b2b", label: "B2B", desc: "Serious & trustworthy" }
+                  ].map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setStylePreset(preset.id)}
+                      className={
+                        "template-pill" +
+                        (stylePreset === preset.id ? " template-pill-active" : "")
+                      }
+                    >
+                      <span className="template-pill-label">{preset.label}</span>
+                      <span className="template-pill-desc">{preset.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="chip-row">
                 <span className="chip highlight">Hero copy</span>
                 <span className="chip highlight">Features</span>
@@ -308,18 +363,14 @@ export default function HomePage() {
               <div className="preview-tabs">
                 <button
                   type="button"
-                  className={
-                    "preview-tab" + (previewMode === "pretty" ? " active" : "")
-                  }
+                  className={"preview-tab" + (previewMode === "pretty" ? " active" : "")}
                   onClick={() => setPreviewMode("pretty")}
                 >
                   Visual
                 </button>
                 <button
                   type="button"
-                  className={
-                    "preview-tab" + (previewMode === "html" ? " active" : "")
-                  }
+                  className={"preview-tab" + (previewMode === "html" ? " active" : "")}
                   onClick={() => setPreviewMode("html")}
                 >
                   HTML
@@ -328,7 +379,7 @@ export default function HomePage() {
             </div>
 
             {previewMode === "pretty" ? (
-              <div className="preview-shell">
+              <div className={`preview-shell theme-${stylePreset}`}>
                 <div className="preview-browser-bar">
                   <div className="preview-dots">
                     <span className="preview-dot red" />
@@ -344,7 +395,7 @@ export default function HomePage() {
                   <div className="preview-hero-eyebrow">
                     {form.targetAudience
                       ? `${form.targetAudience} · AI-powered`
-                      : "Indie SaaS · AI-powered"}
+                      : "Indie founders · AI-powered"}
                   </div>
                   <h1 className="preview-hero-title">{heroTitle}</h1>
                   <p className="preview-hero-subtitle">{heroSubtitle}</p>
@@ -399,24 +450,31 @@ export default function HomePage() {
                 </div>
               </div>
             ) : (
-              <pre
-                style={{
-                  background: "#020617",
-                  borderRadius: 10,
-                  border: "1px solid rgba(30,64,175,0.8)",
-                  padding: 12,
-                  fontSize: 11,
-                  maxHeight: 460,
-                  overflow: "auto",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word"
-                }}
-              >
-                {generatedHtml || "<!-- Generated landing page HTML will appear here once you run it on a server with your OPENAI_API_KEY configured. -->"}
-              </pre>
+              <div className="html-preview">
+                <div className="html-preview-header">
+                  <span className="card-title">Generated HTML</span>
+                  <button
+                    type="button"
+                    className="button-secondary small"
+                    onClick={handleCopyHtml}
+                    disabled={!generatedHtml}
+                  >
+                    {copiedHtml ? "Copied!" : "Copy HTML"}
+                  </button>
+                </div>
+                <pre className="html-preview-code">
+                  {generatedHtml ||
+                    "<!-- Generated landing page HTML will appear here once you run it on a server with your OPENAI_API_KEY configured. -->"}
+                </pre>
+              </div>
             )}
           </section>
         </div>
+
+        <footer className="app-footer">
+          <span>LaunchPage AI · v0.1</span>
+          <span>Built in public. Ship fast, learn faster.</span>
+        </footer>
       </div>
     </main>
   );
