@@ -20,6 +20,7 @@ export default function HomePage() {
   const [result, setResult] = useState(null);
   const [stylePreset, setStylePreset] = useState("bold");
   const [copiedHtml, setCopiedHtml] = useState(false);
+  const [theme, setTheme] = useState("dark"); // dark | light
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -127,9 +128,13 @@ export default function HomePage() {
 
   const generatedHtml = result?.rawHtml || "";
 
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
   return (
     <main>
-      <div className="app-shell">
+      <div className={`app-shell ${theme === "light" ? "app-shell-light" : ""}`}>
         <header className="app-header">
           <div className="app-header-left">
             <div className="badge">
@@ -138,8 +143,8 @@ export default function HomePage() {
             </div>
             <div className="app-branding">
               <div className="app-title">
-                <span className="logo">Λ</span>
-                <span>LaunchPage AI</span>
+                <span className="logo">LP</span>
+                <span className="app-title-text">LaunchPage AI</span>
               </div>
               <p className="app-tagline">
                 Generate high-converting landing pages from a single sentence. Built for indie
@@ -148,6 +153,17 @@ export default function HomePage() {
             </div>
           </div>
           <div className="app-header-right">
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={toggleTheme}
+              aria-label="Toggle light / dark mode"
+            >
+              <span className="theme-toggle-thumb" />
+              <span className="theme-toggle-label">
+                {theme === "dark" ? "Dark" : "Light"} mode
+              </span>
+            </button>
             <div className="app-header-pill">No code · AI powered · Indie SaaS</div>
             <a
               href="https://x.com"
@@ -389,7 +405,7 @@ export default function HomePage() {
                   <div className="preview-url">
                     {form.productName || "your-product"}.launchpage.ai
                   </div>
-                  <div style={{ fontSize: 10, color: "#64748b" }}>live preview</div>
+                  <div className="preview-browser-meta">Preview · LaunchPage AI</div>
                 </div>
                 <div className="preview-body">
                   <div className="preview-hero-eyebrow">
@@ -475,6 +491,15 @@ export default function HomePage() {
           <span>LaunchPage AI · v0.1</span>
           <span>Built in public. Ship fast, learn faster.</span>
         </footer>
+
+        <a
+          href="https://x.com"
+          target="_blank"
+          rel="noreferrer"
+          className="floating-cta"
+        >
+          Ship this →  
+        </a>
       </div>
     </main>
   );
